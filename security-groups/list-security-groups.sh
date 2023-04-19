@@ -8,7 +8,8 @@ then
     fileName="${AWS_PROFILE}-${fileName}"
 fi
 
-echo "" > $fileName
+echo 'environment;region;groupId;groupName;vpcId;description;ownerId;inboundRulesCount;outboundRulesCount;tagsString;hasNetworkAssociated' > $fileName
+
 for region in $(aws ec2 describe-regions --all-regions --query "Regions[].{Name:RegionName}" --output text);
 do
     echo "===== $region ====="
@@ -24,6 +25,8 @@ do
 
         environment=$AWS_PROFILE
         groupId=$(_jq '.GroupId')
+        echo "Processing group ${groupId}"
+
         groupName=$(_jq '.GroupName')
         vpcId=$(_jq '.VpcId')
         description=$(_jq '.Description')
@@ -56,6 +59,8 @@ do
         fi
         # ===== 
 
-        echo "$environment;$region;$groupId;$groupName;$vpcId;$description;$ownerId;$inboundRulesCount;$outboundRulesCount;$tagsString;$hasNetworkAssociated" >> $fileName
+        echo "$environment;$region;$groupId;$groupName;$vpcId;$description;$ownerId;$inboundRulesCount;$outboundRulesCount;$tagsString;$hasNetworkAssociated" >> $fileName        
     done
+
+    echo ""
 done

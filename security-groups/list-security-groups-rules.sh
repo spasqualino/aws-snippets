@@ -8,10 +8,10 @@ then
     fileName="${AWS_PROFILE}-${fileName}"
 fi
 
-echo "" > $fileName
+echo 'environment;region;groupId;groupName;groupDescription;type;ipProtocol;fromPort;toPort;ipRanges;ipv6Ranges;prefixListIds;userIdGroupPairId;useridGroupPairDescription' > $fileName
+
 for region in $(aws ec2 describe-regions --all-regions --query "Regions[].{Name:RegionName}" --output text);
-do
-    region="us-east-1"
+do    
     echo "===== $region ====="
     
     securityGroupsString=$(aws ec2 describe-security-groups --region $region --output json --no-paginate --no-cli-pager)
@@ -26,11 +26,11 @@ do
         environment=$AWS_PROFILE
 
         groupId=$(_jq '.GroupId')        
+        echo "Processing group ${groupId}"
+
         groupName=$(_jq '.GroupName')
         description=$(_jq '.Description')
 
-        echo "Processing group ${groupId}"
-    
         inboundRules=$(_jq '.IpPermissions')
         for inboundRule in $(echo "${inboundRules}" | jq -r '.[]? | @base64'); do
             _jqInboundRule() {
@@ -40,7 +40,7 @@ do
             ipProtocol=$(_jqInboundRule '.IpProtocol')
             fromPort=$(_jqInboundRule '.FromPort')
             toPort=$(_jqInboundRule '.ToPort')
-            ipRanges=$(_jqInboundRule '.IpRanges' | jq -r '.[].CidrIp')             
+            ipRanges=$(_jqInboundRule '.IpRanges' | jq -r '.[] | {CidrIp,Description} | join(":")')
             ipv6Ranges=$(_jqInboundRule '.Ipv6Ranges' | jq -r '.[].CidrIpv6') 
             prefixListIds=$(_jqInboundRule '.PrefixListIds' | jq -r '.[].PrefixListId')  
 
@@ -50,7 +50,7 @@ do
 
             if [ $userIdGroupPairsCount -eq 0 ]
             then
-                echo $environment';'$groupId';'$groupName';'$type';'$ipProtocol';'$fromPort';'$toPort';'$ipRanges';'$ipv6Ranges';'$prefixListIds';'$userIdGroupPairId';'$useridGroupPairDescription >> $fileName
+                echo $environment';'$region';'$groupId';'$groupName';'$description';'$type';'$ipProtocol';'$fromPort';'$toPort';'$ipRanges';'$ipv6Ranges';'$prefixListIds';'$userIdGroupPairId';'$useridGroupPairDescription >> $fileName
             else
                 userIdGroupPairs=$(_jqInboundRule '.UserIdGroupPairs') 
                 for userIdGroupPair in $(echo "${userIdGroupPairs}" | jq -r '.[]? | @base64'); do
@@ -60,7 +60,7 @@ do
                     userIdGroupPairId=$(_jqUserIdGroupPair '.GroupId')
                     useridGroupPairDescription=$(_jqUserIdGroupPair '.Description')
                     
-                    echo $environment';'$groupId';'$groupName';'$type';'$ipProtocol';'$fromPort';'$toPort';'$ipRanges';'$ipv6Ranges';'$prefixListIds';'$userIdGroupPairId';'$useridGroupPairDescription >> $fileName
+                    echo $environment';'$region';'$groupId';'$groupName';'$description';'$type';'$ipProtocol';'$fromPort';'$toPort';'$ipRanges';'$ipv6Ranges';'$prefixListIds';'$userIdGroupPairId';'$useridGroupPairDescription >> $fileName
                 done
             fi
         done
@@ -84,7 +84,7 @@ do
 
             if [ $userIdGroupPairsCount -eq 0 ]
             then
-                echo $environment';'$groupId';'$groupName';'$type';'$ipProtocol';'$fromPort';'$toPort';'$ipRanges';'$ipv6Ranges';'$prefixListIds';'$userIdGroupPairId';'$useridGroupPairDescription >> $fileName
+                echo $environment';'$region';'$groupId';'$groupName';'$description';'$type';'$ipProtocol';'$fromPort';'$toPort';'$ipRanges';'$ipv6Ranges';'$prefixListIds';'$userIdGroupPairId';'$useridGroupPairDescription >> $fileName
             else
                 userIdGroupPairs=$(_jqInboundRule '.UserIdGroupPairs') 
                 for userIdGroupPair in $(echo "${userIdGroupPairs}" | jq -r '.[]? | @base64'); do
@@ -94,9 +94,11 @@ do
                     userIdGroupPairId=$(_jqUserIdGroupPair '.GroupId')
                     useridGroupPairDescription=$(_jqUserIdGroupPair '.Description')
                     
-                    echo $environment';'$groupId';'$groupName';'$type';'$ipProtocol';'$fromPort';'$toPort';'$ipRanges';'$ipv6Ranges';'$prefixListIds';'$userIdGroupPairId';'$useridGroupPairDescription >> $fileName
+                    echo $environment';'$region';'$groupId';'$groupName';'$description';'$type';'$ipProtocol';'$fromPort';'$toPort';'$ipRanges';'$ipv6Ranges';'$prefixListIds';'$userIdGroupPairId';'$useridGroupPairDescription >> $fileName
                 done
             fi
         done
     done
+
+    echo ""
 done
