@@ -1,4 +1,5 @@
 #!/bin/bash
+
 echo "AWS_PROFILE: ${AWS_PROFILE}"
 
 fileName="security-groups.txt"
